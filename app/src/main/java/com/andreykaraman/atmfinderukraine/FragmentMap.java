@@ -2,6 +2,7 @@ package com.andreykaraman.atmfinderukraine;
 
 import android.app.Fragment;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -66,6 +67,7 @@ public class FragmentMap extends Fragment {
         map = mapView.getMap();
         map.getUiSettings().setMyLocationButtonEnabled(false);
         map.setMyLocationEnabled(true);
+        Log.d("FragmentMap", "After onViewCreated");
     }
 
     @Override

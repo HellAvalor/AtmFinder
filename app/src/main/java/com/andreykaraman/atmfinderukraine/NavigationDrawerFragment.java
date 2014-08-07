@@ -18,9 +18,15 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
+import android.widget.LinearLayout;
+import android.widget.SimpleAdapter;
+import android.widget.Spinner;
 import android.widget.Toast;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Fragment used for managing interactions for and presentation of a navigation drawer.
@@ -33,12 +39,22 @@ public class NavigationDrawerFragment extends Fragment {
      * Remember the position of the selected item.
      */
     private static final String STATE_SELECTED_POSITION = "selected_navigation_drawer_position";
-
     /**
      * Per the design guidelines, you should show the drawer on launch until the user manually
      * expands it. This shared preference tracks this.
      */
     private static final String PREF_USER_LEARNED_DRAWER = "navigation_drawer_learned";
+    final List<Map<String, String>> data =
+            new ArrayList<Map<String, String>>();
+    // The key to use for reading the color from the Map
+    final String[] from = new String[]{"color"};
+
+    // The type of View to use for displaying the color name.
+    // android.R.id.text1 is a standard resource for displaying text.
+    final int[] to = new int[]{android.R.id.text1};
+    final String[] colors = new String[]{"Black", "White", "Green"};
+
+//            getResources().getStringArray(R.array.colors);
 
     /**
      * A pointer to the current callbacks instance (the Activity).
@@ -51,10 +67,13 @@ public class NavigationDrawerFragment extends Fragment {
     private ActionBarDrawerToggle mDrawerToggle;
 
     private DrawerLayout mDrawerLayout;
-    private ListView mDrawerListView;
+    private LinearLayout mLinearLayout;
+    private Spinner spinnerCategories;
+    private Spinner spinnerSubCategories;
+    //   private ListView mDrawerListView;
     private View mFragmentContainerView;
 
-    private int mCurrentSelectedPosition = 0;
+    //    private int mCurrentSelectedPosition = 0;
     private boolean mFromSavedInstanceState;
     private boolean mUserLearnedDrawer;
 
@@ -64,6 +83,7 @@ public class NavigationDrawerFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        fillLists();
 
         // Read in the flag indicating whether or not the user has demonstrated awareness of the
         // drawer. See PREF_USER_LEARNED_DRAWER for details.
@@ -71,12 +91,12 @@ public class NavigationDrawerFragment extends Fragment {
         mUserLearnedDrawer = sp.getBoolean(PREF_USER_LEARNED_DRAWER, false);
 
         if (savedInstanceState != null) {
-            mCurrentSelectedPosition = savedInstanceState.getInt(STATE_SELECTED_POSITION);
+//            mCurrentSelectedPosition = savedInstanceState.getInt(STATE_SELECTED_POSITION);
             mFromSavedInstanceState = true;
         }
 
         // Select either the default item (0) or the last selected item.
-        selectItem(mCurrentSelectedPosition);
+//        selectItem(mCurrentSelectedPosition);
     }
 
     @Override
@@ -89,26 +109,76 @@ public class NavigationDrawerFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        mDrawerListView = (ListView) inflater.inflate(
-                R.layout.fragment_navigation_drawer, container, false);
-        mDrawerListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mLinearLayout = (LinearLayout) inflater.inflate(R.layout.fragment_navigation_drawer, container, false);
+        spinnerCategories = (Spinner) mLinearLayout.findViewById(R.id.spinnerCategories);
+        spinnerSubCategories = (Spinner) mLinearLayout.findViewById(R.id.spinnerSubCategories);
+
+//        mDrawerListView = (ListView) inflater.inflate(
+//                R.layout.fragment_navigation_drawer, container, false);
+//        mDrawerListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+//            @Override
+//            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+//                selectItem(position);
+//            }
+//        });
+//        mDrawerListView.setAdapter(new ArrayAdapter<String>(
+//                getActionBar().getThemedContext(),
+//                android.R.layout.simple_list_item_activated_1,
+//                android.R.id.text1,
+//                new String[]{
+//                        getString(R.string.title_section1),
+//                        getString(R.string.title_section2),
+//                        getString(R.string.title_section3),
+//                }
+//        ));
+//        mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
+//        return mDrawerListView;
+        return mLinearLayout;
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        final SimpleAdapter simpleAdapter =
+                new SimpleAdapter(getActivity(), data,
+                        android.R.layout.simple_spinner_item, from, to);
+        simpleAdapter.setDropDownViewResource(
+                android.R.layout.simple_spinner_dropdown_item);
+
+//        SimpleAdapter.ViewBinder viewBinder = new SimpleAdapter.ViewBinder() {
+//
+//            public boolean setViewValue(View view, Object data,
+//                                        String textRepresentation) {
+//                // We configured the SimpleAdapter to create TextViews (see
+//                // the 'to' array, above), so this cast should be safe:
+//                TextView textView = (TextView) view;
+//                textView.setText(textRepresentation);
+//                return true;
+//            }
+//        };
+//        simpleAdapter.setViewBinder(viewBinder);
+
+
+        spinnerCategories.setAdapter(simpleAdapter);
+        spinnerCategories.setSelection(0);
+        spinnerCategories.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                selectItem(position);
+            public void onItemSelected(AdapterView<?> parent, View view,
+                                       int position, long id) {
+                // Get the color name out of the Map
+                final Map<String, String> data =
+                        (Map<String, String>) parent.getItemAtPosition(position);
+                final String text = "Selected Color:-  " + data.get("color");
+
+                Toast.makeText(parent.getContext(), text,
+                        Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> arg0) {
+                // Do nothing
             }
         });
-        mDrawerListView.setAdapter(new ArrayAdapter<String>(
-                getActionBar().getThemedContext(),
-                android.R.layout.simple_list_item_activated_1,
-                android.R.id.text1,
-                new String[]{
-                        getString(R.string.title_section1),
-                        getString(R.string.title_section2),
-                        getString(R.string.title_section3),
-                }
-        ));
-        mDrawerListView.setItemChecked(mCurrentSelectedPosition, true);
-        return mDrawerListView;
     }
 
     public boolean isDrawerOpen() {
@@ -189,18 +259,18 @@ public class NavigationDrawerFragment extends Fragment {
         mDrawerLayout.setDrawerListener(mDrawerToggle);
     }
 
-    private void selectItem(int position) {
-        mCurrentSelectedPosition = position;
-        if (mDrawerListView != null) {
-            mDrawerListView.setItemChecked(position, true);
-        }
-        if (mDrawerLayout != null) {
-            mDrawerLayout.closeDrawer(mFragmentContainerView);
-        }
-        if (mCallbacks != null) {
-            mCallbacks.onNavigationDrawerItemSelected(position);
-        }
-    }
+//    private void selectItem(int position) {
+////        mCurrentSelectedPosition = position;
+////        if (mDrawerListView != null) {
+////            mDrawerListView.setItemChecked(position, true);
+////        }
+//        if (mDrawerLayout != null) {
+//            mDrawerLayout.closeDrawer(mFragmentContainerView);
+//        }
+//        if (mCallbacks != null) {
+//            mCallbacks.onNavigationDrawerItemSelected(position);
+//        }
+//    }
 
     @Override
     public void onAttach(Activity activity) {
@@ -221,7 +291,7 @@ public class NavigationDrawerFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putInt(STATE_SELECTED_POSITION, mCurrentSelectedPosition);
+//        outState.putInt(STATE_SELECTED_POSITION, mCurrentSelectedPosition);
     }
 
     @Override
@@ -269,6 +339,19 @@ public class NavigationDrawerFragment extends Fragment {
 
     private ActionBar getActionBar() {
         return getActivity().getActionBar();
+    }
+
+    private void fillLists() {
+
+        for (int i = 0; i < colors.length; i++) {
+            data.add(addData(colors[i]));
+        }
+    }
+
+    private Map<String, String> addData(String colorName) {
+        Map<String, String> map = new HashMap<String, String>();
+        map.put("color", colorName);
+        return map;
     }
 
     /**
