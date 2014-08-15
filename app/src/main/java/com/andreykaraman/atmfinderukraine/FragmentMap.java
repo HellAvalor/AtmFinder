@@ -104,6 +104,11 @@ public class FragmentMap extends Fragment {
 
     }
 
+    public void sendUpdate(int categoryId, int subcategoryId, int radius) {
+        Log.d("FragmentMap", "" + categoryId + "/" + subcategoryId + "/" + radius);
+    }
+
+
     private void setUpMap() {
 
         int status = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getActivity());

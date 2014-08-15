@@ -61,24 +61,20 @@ public class NavigationDrawerFragment extends Fragment {
      * expands it. This shared preference tracks this.
      */
     private static final String PREF_USER_LEARNED_DRAWER = "navigation_drawer_learned";
-
+    UpdateButtonClicked mCallback;
     private List<Category> categoriesList = new ArrayList<Category>();
     private List<SubCategory> subCategoriesList = new ArrayList<SubCategory>();
-
     private CategoryAdapter categoryAdapter;
     private SubCategoryAdapter subCategoryAdapter;
-
     private SeekBar seekBarRadius;
     /**
      * A pointer to the current callbacks instance (the Activity).
      */
     private NavigationDrawerCallbacks mCallbacks;
-
     /**
      * Helper component that ties the action bar to the navigation drawer.
      */
     private ActionBarDrawerToggle mDrawerToggle;
-
     private DrawerLayout mDrawerLayout;
     private LinearLayout mLinearLayout;
     private Spinner spinnerCategories;
@@ -86,7 +82,6 @@ public class NavigationDrawerFragment extends Fragment {
     private Button updateButton;
     //   private ListView mDrawerListView;
     private View mFragmentContainerView;
-
     //    private int mCurrentSelectedPosition = 0;
     private boolean mFromSavedInstanceState;
     private boolean mUserLearnedDrawer;
@@ -293,18 +288,6 @@ public class NavigationDrawerFragment extends Fragment {
     }
 
     @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-    }
-
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-//        mCallbacks = null;
-    }
-
-    @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
     }
@@ -473,6 +456,26 @@ public class NavigationDrawerFragment extends Fragment {
         queue.add(jsObjRequest);
     }
 
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+
+        // This makes sure that the container activity has implemented
+        // the callback interface. If not, it throws an exception
+        try {
+            mCallback = (UpdateButtonClicked) activity;
+        } catch (ClassCastException e) {
+            throw new ClassCastException(activity.toString()
+                    + " must implement UpdateButtonClicked");
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mCallback = null;
+    }
+
     /**
      * Callbacks interface that all activities using this fragment must implement.
      */
@@ -483,10 +486,16 @@ public class NavigationDrawerFragment extends Fragment {
         void onNavigationDrawerItemSelected(int position);
     }
 
+    public interface UpdateButtonClicked {
+        public void sendUpdate(int categoryId, int subcategoryId, int radius);
+    }
+
     public class UpdateButtonListener implements View.OnClickListener {
 
         @Override
         public void onClick(View v) {
+
+            mCallback.sendUpdate(((Category) spinnerCategories.getSelectedItem()).get_id(), ((SubCategory) spinnerSubCategories.getSelectedItem()).get_id(), seekBarRadius.getProgress());
             Log.d("UpdateButtonListener", "Data=> " + seekBarRadius.getProgress() + " category " + ((Category) spinnerCategories.getSelectedItem()).getCategoryName() + " subCategory " + ((SubCategory) spinnerSubCategories.getSelectedItem()).getSubCategoryName());
         }
     }

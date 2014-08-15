@@ -9,7 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements NavigationDrawerFragment.UpdateButtonClicked {
 //        implements NavigationDrawerFragment.NavigationDrawerCallbacks {
 
     /**
@@ -38,9 +38,10 @@ public class MainActivity extends Activity {
 
         FragmentManager fragmentManager = getFragmentManager();
         fragmentManager.beginTransaction()
-                .replace(R.id.container, FragmentMap.newInstance())
+                .replace(R.id.container, FragmentMap.newInstance(), "MapFragment")
                 .commit();
     }
+
 
 //    @Override
 //    public void onNavigationDrawerItemSelected() {
@@ -98,4 +99,11 @@ public class MainActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void sendUpdate(int categoryId, int subcategoryId, int radius) {
+        FragmentMap frag = (FragmentMap)
+                getFragmentManager().findFragmentByTag("MapFragment");
+        frag.sendUpdate(categoryId, subcategoryId, radius);
+
+    }
 }
