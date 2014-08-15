@@ -8,20 +8,31 @@
     <Spinner
         android:id="@+id/spinnerCategories"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dip" />
 
     <Spinner
         android:id="@+id/spinnerSubCategories"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="15dip"
         android:spinnerMode="dialog" />
 
     <SeekBar
         android:id="@+id/seekBarSearchRadius"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="15dip"
         android:focusableInTouchMode="false"
         android:indeterminate="false"
         android:max="3000"
         android:progress="500" />
+
+    <Button
+        android:id="@+id/buttonUpdateAtm"
+        style="?android:attr/buttonStyleSmall"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="15dip"
+        android:text="@string/update_atm" />
 </LinearLayout>

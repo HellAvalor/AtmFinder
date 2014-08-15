@@ -1,6 +1,5 @@
 package com.andreykaraman.atmfinderukraine;
 
-
 import android.app.ActionBar;
 import android.app.Activity;
 import android.app.Fragment;
@@ -11,6 +10,7 @@ import android.preference.PreferenceManager;
 import android.support.v4.app.ActionBarDrawerToggle;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -18,10 +18,27 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.LinearLayout;
-import android.widget.SimpleAdapter;
+import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.Toast;
+
+import com.andreykaraman.atmfinderukraine.adapters.CategoryAdapter;
+import com.andreykaraman.atmfinderukraine.adapters.SubCategoryAdapter;
+import com.andreykaraman.atmfinderukraine.model.Category;
+import com.andreykaraman.atmfinderukraine.model.SubCategory;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,18 +61,14 @@ public class NavigationDrawerFragment extends Fragment {
      * expands it. This shared preference tracks this.
      */
     private static final String PREF_USER_LEARNED_DRAWER = "navigation_drawer_learned";
-    final List<Map<String, String>> data =
-            new ArrayList<Map<String, String>>();
-    // The key to use for reading the color from the Map
-    final String[] from = new String[]{"color"};
 
-    // The type of View to use for displaying the color name.
-    // android.R.id.text1 is a standard resource for displaying text.
-    final int[] to = new int[]{android.R.id.text1};
-    final String[] colors = new String[]{"Black", "White", "Green"};
+    private List<Category> categoriesList = new ArrayList<Category>();
+    private List<SubCategory> subCategoriesList = new ArrayList<SubCategory>();
 
-//            getResources().getStringArray(R.array.colors);
+    private CategoryAdapter categoryAdapter;
+    private SubCategoryAdapter subCategoryAdapter;
 
+    private SeekBar seekBarRadius;
     /**
      * A pointer to the current callbacks instance (the Activity).
      */
@@ -70,6 +83,7 @@ public class NavigationDrawerFragment extends Fragment {
     private LinearLayout mLinearLayout;
     private Spinner spinnerCategories;
     private Spinner spinnerSubCategories;
+    private Button updateButton;
     //   private ListView mDrawerListView;
     private View mFragmentContainerView;
 
@@ -83,7 +97,6 @@ public class NavigationDrawerFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        fillLists();
 
         // Read in the flag indicating whether or not the user has demonstrated awareness of the
         // drawer. See PREF_USER_LEARNED_DRAWER for details.
@@ -112,7 +125,9 @@ public class NavigationDrawerFragment extends Fragment {
         mLinearLayout = (LinearLayout) inflater.inflate(R.layout.fragment_navigation_drawer, container, false);
         spinnerCategories = (Spinner) mLinearLayout.findViewById(R.id.spinnerCategories);
         spinnerSubCategories = (Spinner) mLinearLayout.findViewById(R.id.spinnerSubCategories);
-
+        seekBarRadius = (SeekBar) mLinearLayout.findViewById(R.id.seekBarSearchRadius);
+        updateButton = (Button) mLinearLayout.findViewById(R.id.buttonUpdateAtm);
+        updateButton.setOnClickListener(new UpdateButtonListener());
 //        mDrawerListView = (ListView) inflater.inflate(
 //                R.layout.fragment_navigation_drawer, container, false);
 //        mDrawerListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -139,38 +154,29 @@ public class NavigationDrawerFragment extends Fragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        final SimpleAdapter simpleAdapter =
-                new SimpleAdapter(getActivity(), data,
-                        android.R.layout.simple_spinner_item, from, to);
-        simpleAdapter.setDropDownViewResource(
-                android.R.layout.simple_spinner_dropdown_item);
-
-//        SimpleAdapter.ViewBinder viewBinder = new SimpleAdapter.ViewBinder() {
+//        final SimpleAdapter simpleAdapter =
+//                new SimpleAdapter(getActivity(), data,
+//                        android.R.layout.simple_spinner_item, from, to);
+//        simpleAdapter.setDropDownViewResource(
+//                android.R.layout.simple_spinner_dropdown_item);
 //
-//            public boolean setViewValue(View view, Object data,
-//                                        String textRepresentation) {
-//                // We configured the SimpleAdapter to create TextViews (see
-//                // the 'to' array, above), so this cast should be safe:
-//                TextView textView = (TextView) view;
-//                textView.setText(textRepresentation);
-//                return true;
-//            }
-//        };
-//        simpleAdapter.setViewBinder(viewBinder);
-
-
-        spinnerCategories.setAdapter(simpleAdapter);
-        spinnerCategories.setSelection(0);
+//
+//        spinnerCategories.setAdapter(simpleAdapter);
+        categoriesList = new ArrayList<Category>();
+        categoriesList.add(new Category(0, "loading..."));
+        categoryAdapter = new CategoryAdapter(getActivity(), categoriesList);
+        spinnerCategories.setPrompt("ATM Category");
+        spinnerCategories.setAdapter(categoryAdapter);
         spinnerCategories.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view,
                                        int position, long id) {
                 // Get the color name out of the Map
-                final Map<String, String> data =
-                        (Map<String, String>) parent.getItemAtPosition(position);
-                final String text = "Selected Color:-  " + data.get("color");
-
-                Toast.makeText(parent.getContext(), text,
+//                final Map<String, String> data =
+//                        (Map<String, String>) parent.getItemAtPosition(position);
+//                final String text = "Selected Color:-  " + data.get("color");
+                updateSubCategories(id);
+                Toast.makeText(parent.getContext(), categoryAdapter.getItem(position).getCategoryName(),
                         Toast.LENGTH_LONG).show();
             }
 
@@ -179,6 +185,33 @@ public class NavigationDrawerFragment extends Fragment {
                 // Do nothing
             }
         });
+
+
+        subCategoriesList = new ArrayList<SubCategory>();
+        subCategoriesList.add(new SubCategory(0, "loading..."));
+        subCategoryAdapter = new SubCategoryAdapter(getActivity(), subCategoriesList);
+        spinnerSubCategories.setPrompt("ATM SubCategory");
+        spinnerSubCategories.setAdapter(subCategoryAdapter);
+        spinnerSubCategories.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view,
+                                       int position, long id) {
+                // Get the color name out of the Map
+//                final Map<String, String> data =
+//                        (Map<String, String>) parent.getItemAtPosition(position);
+//                final String text = "Selected Color:-  " + data.get("color");
+
+                Toast.makeText(parent.getContext(), subCategoryAdapter.getItem(position).getSubCategoryName(),
+                        Toast.LENGTH_LONG).show();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> arg0) {
+                // Do nothing
+            }
+        });
+
+        updateCategories();
     }
 
     public boolean isDrawerOpen() {
@@ -259,39 +292,21 @@ public class NavigationDrawerFragment extends Fragment {
         mDrawerLayout.setDrawerListener(mDrawerToggle);
     }
 
-//    private void selectItem(int position) {
-////        mCurrentSelectedPosition = position;
-////        if (mDrawerListView != null) {
-////            mDrawerListView.setItemChecked(position, true);
-////        }
-//        if (mDrawerLayout != null) {
-//            mDrawerLayout.closeDrawer(mFragmentContainerView);
-//        }
-//        if (mCallbacks != null) {
-//            mCallbacks.onNavigationDrawerItemSelected(position);
-//        }
-//    }
-
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
-        try {
-            mCallbacks = (NavigationDrawerCallbacks) activity;
-        } catch (ClassCastException e) {
-            throw new ClassCastException("Activity must implement NavigationDrawerCallbacks.");
-        }
     }
+
 
     @Override
     public void onDetach() {
         super.onDetach();
-        mCallbacks = null;
+//        mCallbacks = null;
     }
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-//        outState.putInt(STATE_SELECTED_POSITION, mCurrentSelectedPosition);
     }
 
     @Override
@@ -341,17 +356,121 @@ public class NavigationDrawerFragment extends Fragment {
         return getActivity().getActionBar();
     }
 
-    private void fillLists() {
-
-        for (int i = 0; i < colors.length; i++) {
-            data.add(addData(colors[i]));
-        }
-    }
-
     private Map<String, String> addData(String colorName) {
         Map<String, String> map = new HashMap<String, String>();
         map.put("color", colorName);
         return map;
+    }
+
+    private void updateCategories() {
+
+        Toast.makeText(getActivity(), "test", Toast.LENGTH_SHORT).show();
+
+        RequestQueue queue = Volley.newRequestQueue(getActivity());
+
+        String url = "http://notacash.com/api/categories/";
+//            String url ="https://www.googleapis.com/customsearch/v1?key=AIzaSyBmSXUzVZBKQv9FJkTpZXn0dObKgEQOIFU&cx=014099860786446192319:t5mr0xnusiy&q=AndroidDev&alt=json&searchType=image";
+
+        JsonArrayRequest jsObjRequest = new JsonArrayRequest(url, new Response.Listener<JSONArray>() {
+
+            @Override
+            public void onResponse(JSONArray response) {
+                // TODO Auto-generated method stub
+                Log.d("onResponse", "Category Response => " + response.toString());
+                Toast.makeText(getActivity(), "onResponce", Toast.LENGTH_SHORT).show();
+
+                if (response != null) {
+                    int len = response.length();
+                    categoriesList.clear();
+                    for (int i = 0; i < len; i++) {
+                        JSONObject jsonProductObject = null;
+                        try {
+                            jsonProductObject = response.getJSONObject(i);
+                            Category cat = new Category();
+                            cat.set_id(jsonProductObject.getInt("Id"));
+                            cat.setCategoryName(jsonProductObject.getString("Name"));
+                            categoriesList.add(cat);
+                            categoryAdapter = new CategoryAdapter(getActivity(), categoriesList);
+                            spinnerCategories.setAdapter(categoryAdapter);
+                            Log.d("onResponse", "Id => " + cat.get_id() + " Name=> " + cat.getCategoryName());
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+//                txtDisplay.setText("Response => "+response.toString());
+//                findViewById(R.id.progressBar1).setVisibility(View.GONE);
+            }
+        }, new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                categoriesList.clear();
+                categoriesList.add(new Category(0, "loading..."));
+                categoryAdapter = new CategoryAdapter(getActivity(), categoriesList);
+                spinnerCategories.setAdapter(categoryAdapter);
+                // TODO Auto-generated method stub
+                Log.d("onErrorResponse", "Category error => " + error);
+            }
+        });
+
+        queue.add(jsObjRequest);
+    }
+
+    private void updateSubCategories(long id) {
+
+        RequestQueue queue = Volley.newRequestQueue(getActivity());
+        String url = "http://notacash.com/api/category/" + id;
+
+        JsonObjectRequest jsObjRequest = new JsonObjectRequest(Request.Method.GET, url, null, new Response.Listener<JSONObject>() {
+
+            @Override
+            public void onResponse(JSONObject response) {
+                // TODO Auto-generated method stub
+                Log.d("onResponse", "Subcategory Response => " + response.toString());
+
+                if (response != null) {
+                    JSONArray jsonArray = null;
+                    try {
+                        jsonArray = response.getJSONArray("Subcategories");
+                        subCategoriesList.clear();
+                        int len = jsonArray.length();
+                        for (int i = 0; i < len; i++) {
+                            Log.d("onResponse", "Subcategory len => " + len);
+                            JSONObject jsonProductObject = null;
+                            try {
+                                jsonProductObject = jsonArray.getJSONObject(i);
+                                SubCategory cat = new SubCategory();
+                                cat.set_id(jsonProductObject.getInt("Id"));
+                                cat.setSubCategoryName(jsonProductObject.getString("Name"));
+                                subCategoriesList.add(cat);
+                                subCategoryAdapter = new SubCategoryAdapter(getActivity(), subCategoriesList);
+                                spinnerSubCategories.setAdapter(subCategoryAdapter);
+                                Log.d("onResponse", "Id => " + cat.get_id() + " Name=> " + cat.getSubCategoryName());
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }, new Response.ErrorListener() {
+
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                subCategoriesList.clear();
+                subCategoriesList.add(new SubCategory(0, "loading..."));
+                subCategoryAdapter = new SubCategoryAdapter(getActivity(), subCategoriesList);
+                spinnerSubCategories.setAdapter(subCategoryAdapter);
+                // TODO Auto-generated method stub
+                Log.d("onErrorResponse", "Subcategory error => " + error);
+            }
+        });
+
+        queue.add(jsObjRequest);
     }
 
     /**
@@ -363,4 +482,13 @@ public class NavigationDrawerFragment extends Fragment {
          */
         void onNavigationDrawerItemSelected(int position);
     }
+
+    public class UpdateButtonListener implements View.OnClickListener {
+
+        @Override
+        public void onClick(View v) {
+            Log.d("UpdateButtonListener", "Data=> " + seekBarRadius.getProgress() + " category " + ((Category) spinnerCategories.getSelectedItem()).getCategoryName() + " subCategory " + ((SubCategory) spinnerSubCategories.getSelectedItem()).getSubCategoryName());
+        }
+    }
+
 }
